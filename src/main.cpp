@@ -4,6 +4,8 @@ int control_array[11]; // array from web: 0 = off, 1 = CW, -1 = CCW
 // globals
 int j1_direction = 0; // 1 = CW, -1 = CCW
 int j2_direction = 0;
+int j3_direction = 0;
+int j4_direction = 0;
 
 void parseControlArray(char* buffer) {
     // Expected format: "[0,1,0,-1,0,0,0,1,1,0,2]"
@@ -21,13 +23,9 @@ void handleArrayControl() {
     j2_direction = (control_array[2] == 1) ? 1 : (control_array[3] == 1) ? -1 : 0;
 
 
-    // Link 3 (Z)
-    if (control_array[4] == 1) j3_motor.setReference(j3_motor.getReference() + 1);
-    else if (control_array[5] == 1) j3_motor.setReference(j3_motor.getReference() - 1);
+    j3_direction = (control_array[4] == 1) ? 1 : (control_array[5] == 1) ? -1 : 0;
+    j4_direction = (control_array[6] == 1) ? 1 : (control_array[7] == 1) ? -1 : 0;
 
-    // Link 4 (Wrist)
-    if (control_array[6] == 1) j4_motor.setReference(j4_motor.getReference() + 1);
-    else if (control_array[7] == 1) j4_motor.setReference(j4_motor.getReference() - 1);
 
     // Pick/Release logic
     if (control_array[8] == 1) {
@@ -195,6 +193,17 @@ void motion_task(void *pvParameters)
                 steppers_targets[1] += j2_direction;
                 j2_motor.moveToAbsolute((steppers_targets[1] / 360.0) * 600);
             }
+
+            if (j3_direction != 0) {
+                dc_targets[0] += j3_direction; // incrementa en grados
+                j3_motor.setReference(dc_targets[0]);
+            }
+
+            if (j4_direction != 0) {
+                dc_targets[1] += j4_direction;
+                j4_motor.setReference(dc_targets[1]);
+            }
+
 
             last_step_time = now;
         }
