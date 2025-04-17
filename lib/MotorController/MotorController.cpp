@@ -84,6 +84,9 @@ void MotorController::stop(bool brake)
 {
     motor.setStop(brake);
 }
+float MotorController::getReference() {
+    return _reference;
+}
 
 // Método para resetear la parte integral
 void MotorController::resetIntegral()

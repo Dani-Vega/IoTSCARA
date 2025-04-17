@@ -1,5 +1,46 @@
 #include "definitions.h"
 
+int control_array[11]; // array from web: 0 = off, 1 = CW, -1 = CCW
+// globals
+int j1_direction = 0; // 1 = CW, -1 = CCW
+int j2_direction = 0;
+
+void parseControlArray(char* buffer) {
+    // Expected format: "[0,1,0,-1,0,0,0,1,1,0,2]"
+    int i = 0;
+    char* ptr = strtok(buffer, "[, ]");
+    while (ptr != NULL && i < 11) {
+        control_array[i++] = atoi(ptr);
+        ptr = strtok(NULL, "[, ]");
+    }
+}
+
+void handleArrayControl() {
+
+    j1_direction = (control_array[0] == 1) ? 1 : (control_array[1] == 1) ? -1 : 0;
+    j2_direction = (control_array[2] == 1) ? 1 : (control_array[3] == 1) ? -1 : 0;
+
+
+    // Link 3 (Z)
+    if (control_array[4] == 1) j3_motor.setReference(j3_motor.getReference() + 1);
+    else if (control_array[5] == 1) j3_motor.setReference(j3_motor.getReference() - 1);
+
+    // Link 4 (Wrist)
+    if (control_array[6] == 1) j4_motor.setReference(j4_motor.getReference() + 1);
+    else if (control_array[7] == 1) j4_motor.setReference(j4_motor.getReference() - 1);
+
+    // Pick/Release logic
+    if (control_array[8] == 1) {
+        // Pick object
+    }
+    if (control_array[9] == 1) {
+        // Release object
+    }
+
+    // Mode = control_array[10]
+    // You can use this value if needed for switching behavior
+}
+
 void processing_task(void *pvParameters)
 {
     while (1)
@@ -22,11 +63,22 @@ void processing_task(void *pvParameters)
             message_length_mqtt = mqtt.available();
             if (message_length_mqtt)
             {
-                mqtt.read(buffer_mqtt, message_length_mqtt); // Leer datos
+                //mqtt.read(buffer_mqtt, message_length_mqtt); // Leer datos
                 // Parseo tipo 1,12.0,45.0,30.0
                 sscanf(buffer_mqtt, "%d,%f,%f,%f", &modo, &t1, &t2, &t3);
             }
-            printf("Datos Recibidos: %d, %.2f, %.2f, %.2f\n", modo, t1, t2, t3);
+            //printf("Datos Recibidos: %d, %.2f, %.2f, %.2f\n", modo, t1, t2, t3);
+
+            if (message_length_mqtt) {
+                mqtt.read(buffer_mqtt, message_length_mqtt);
+                if (buffer_mqtt[0] == '[') {
+                    parseControlArray(buffer_mqtt);
+                    handleArrayControl();
+                } else {
+                    sscanf(buffer_mqtt, "%d,%f,%f,%f", &modo, &t1, &t2, &t3);
+                }
+            }
+
 
             // Bluetooth
             message_length = sprintf(message, "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f%.2f,%.2f\n",
@@ -125,15 +177,30 @@ void processing_task(void *pvParameters)
 
 void motion_task(void *pvParameters)
 {
+    const int step_interval_ms = 20; // control how fast target increases
+    int64_t last_step_time = esp_timer_get_time() / 1000; // in ms
+
     while (true)
     {
-        //UBaseType_t watermark = uxTaskGetStackHighWaterMark(NULL);
-        //printf("Watermark Motors: %u\n", watermark);
-        //printf("Moviendo motores\n");
-        if (j1_motor.isRunning())
-            j1_motor.run();
-        if (j2_motor.isRunning())
-            j2_motor.run();
+        int64_t now = esp_timer_get_time() / 1000;
+
+        if (now - last_step_time >= step_interval_ms)
+        {
+            if (j1_direction != 0) {
+                steppers_targets[0] += j1_direction;
+                j1_motor.moveToAbsolute((steppers_targets[0] / 360.0) * 5000);
+            }
+
+            if (j2_direction != 0) {
+                steppers_targets[1] += j2_direction;
+                j2_motor.moveToAbsolute((steppers_targets[1] / 360.0) * 600);
+            }
+
+            last_step_time = now;
+        }
+
+        if (j1_motor.isRunning()) j1_motor.run();
+        if (j2_motor.isRunning()) j2_motor.run();
 
         j3_motor.update();
         j4_motor.update();

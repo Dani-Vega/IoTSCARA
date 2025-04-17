@@ -18,6 +18,8 @@
 
 #include <SimpleSerialBT.h>
 
+#include <cstring>
+
 // #include <esp_wpa2.h> // En vez de usar esta, usar la de abajo
 
 // #include <esp_eap_client.h>
@@ -31,11 +33,17 @@
 
 const char *uri = "mqtts://da16513bd15d4ebe8c54b66e1be44028.s1.eu.hivemq.cloud:8883";
 
-const char *username = "galvarez2004";
-const char *password = "G.@.s.412004";
+//const char *username = "galvarez2004";
+//const char *password = "G.@.s.412004";
 
-std::string ssid = "Totalplay-2.4G-25a0";
-std::string password_wifi = "rECQkHteW4qZpDtY";
+const char *username = "Yaroar";
+const char *password = "Yaraaa221329";
+
+//std::string ssid = "Totalplay-2.4G-25a0";
+//std::string password_wifi = "rECQkHteW4qZpDtY";
+
+std::string ssid = "Totalplay-D9A7";
+std::string password_wifi = "*Tm502mVS#";
 
 WiFiManager wifi(ssid, password_wifi, 1);
 MQTTManager mqtt;

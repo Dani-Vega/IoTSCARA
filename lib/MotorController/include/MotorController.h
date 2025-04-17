@@ -39,6 +39,9 @@ public:
     // Obtener la salida calculada del PID (u)
     float getOutput();
 
+    //Movimiento relativo basado en la referencia actual
+    float getReference();
+
     // Detener el puente H
     void stop(bool brake);
 
